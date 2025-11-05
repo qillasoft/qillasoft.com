@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <title>Crop Foto 4×6cm (Kartu NUPTK)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="cropper.min.css">
+    <link rel="stylesheet" href="cropper-style.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Crop Foto 4×6 cm untuk Kartu NUPTK</h1>
+        <div class="card">
+            <div class="size-info"><b>Ukuran Foto Kartu NUPTK:</b> 4×6 cm (472×708 pixel @ 300 DPI)</div>
+            <form id="form" method="POST" enctype="multipart/form-data">
+                <div class="previewWrap">
+                    <div class="imgArea">
+                        <img id="image" alt="Preview akan tampil di sini" />
+                    </div>
+                    <div class="side">
+                        <div class="miniPreview">
+                            <div class="tinyNote">Preview Crop</div>
+                            <canvas id="mini" width="118" height="177"></canvas>
+                        </div>
+                        <br>
+                        <div class="btnRow">
+                            <button type="button" id="reset" class="btnGhost">Reset Crop</button>
+                            <button type="button" id="process" class="btn">Proses & Simpan</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- dataURL hasil crop dikirim ke server -->
+                <input type="hidden" id="cropped_image" name="cropped_image">
+            </form>
+        </div>
+
+        <div class="credit">
+            © 2025 ‧ <a href="https://qillasoft.com" target="_blank">QILLASOFT</a> ‧ All rights reserved.
+        </div>
+    </div>
+
+    <script src="cropper.min.js"></script>
+    <script>
+        const imgEl = document.getElementById('image');
+        const form = document.getElementById('form');
+        const hiddenInput = document.getElementById('cropped_image');
+        const miniCanvas = document.getElementById('mini');
+        const resetBtn = document.getElementById('reset');
+        const processBtn = document.getElementById('process');
+        let cropper = null;
+
+        // Ambil URL gambar dari parameter URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const photoUrl = urlParams.get('photo');
+        
+        if (photoUrl) {
+            imgEl.src = photoUrl;
+            imgEl.onload = () => {
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(imgEl, {
+                    aspectRatio: 4 / 6,    // kunci 4:6
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.8,
+                    background: false,
+                    responsive: true,
+                    crop() {
+                        // Update mini preview realtime (diperkecil 25% untuk tampilan)
+                        try {
+                            const c = cropper.getCroppedCanvas({width: 472, height: 708});
+                            const ctx = miniCanvas.getContext('2d');
+                            ctx.clearRect(0,0,miniCanvas.width, miniCanvas.height);
+                            
+                            // Gambar dengan skala 25% untuk preview
+                            ctx.drawImage(c, 0, 0, 118, 177);
+                        } catch(_) {}
+                    }
+                });
+            };
+        } else {
+            alert('Tidak ada foto untuk di-crop. Silakan tutup jendela ini dan coba lagi.');
+        }
+
+        // Reset gambar
+        resetBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            imgEl.src = photoUrl;
+            const ctx = miniCanvas.getContext('2d');
+            ctx.clearRect(0,0,miniCanvas.width, miniCanvas.height);
+            if (cropper) { cropper.destroy(); cropper = null; }
+            imgEl.onload = () => {
+                cropper = new Cropper(imgEl, {
+                    aspectRatio: 4 / 6,    // kunci 4:6
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.9,
+                    background: false,
+                    responsive: true,
+                    crop() {
+                        try {
+                            const c = cropper.getCroppedCanvas({width: 472, height: 708});
+                            const ctx = miniCanvas.getContext('2d');
+                            ctx.clearRect(0,0,miniCanvas.width, miniCanvas.height);
+                            ctx.drawImage(c, 0, 0, 118, 177);
+                        } catch(_) {}
+                    }
+                });
+            };
+        });
+
+        // Saat proses, ambil hasil crop sebagai JPG (quality 0.95)
+        processBtn.addEventListener('click', (e) => {
+            if (!cropper) {
+                alert('Silakan atur area crop terlebih dahulu.');
+                return;
+            }
+            const canvas = cropper.getCroppedCanvas({ width: 472, height: 708 });
+            if (!canvas) {
+                alert('Gagal membuat hasil crop. Coba gambar lain.');
+                return;
+            }
+            
+            // Kompres gambar ke format JPG dengan kualitas 0.95
+            const croppedDataURL = canvas.toDataURL('image/jpeg', 0.95);
+            
+            // Kirim data gambar kembali ke halaman utama
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage({
+                    type: 'CROPPED_PHOTO',
+                    dataURL: croppedDataURL
+                }, '*');
+                
+                // Tutup jendela crop
+                window.close();
+            } else {
+                alert('Tidak dapat mengirim hasil crop. Silakan tutup jendela ini dan coba lagi.');
+            }
+        });
+    </script>
+</body>
+</html>
