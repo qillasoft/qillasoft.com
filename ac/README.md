@@ -1,7 +1,7 @@
 <h1 align="center">Akademi Crypto</h1>
 
 <p align="center">
-  <img src="img/profile.jpg" alt="Akademi Crypto" width="128px" height="128px"/>
+  <img src="img/logo.webp" alt="Akademi Crypto" width="128px" height="128px"/>
   <br>
   <br>
   <a>Blog Akademi Crypto</a>
